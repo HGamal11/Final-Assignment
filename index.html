@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Food Classification Assignment</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f7f7f5;color:#111;font-size:15px}
+a{color:inherit}
+
+.topbar{background:#111;color:#fff;padding:14px 0}
+.topbar-inner{max-width:720px;margin:0 auto;padding:0 1.5rem;display:flex;align-items:baseline;gap:12px}
+.topbar h1{font-size:17px;font-weight:500}
+.topbar span{font-size:13px;opacity:.55}
+
+.wrap{max-width:720px;margin:0 auto;padding:1.5rem}
+
+.tabs{display:flex;gap:0;border-bottom:1px solid #e0e0e0;margin-bottom:1.5rem;background:#fff;
+      border-radius:12px 12px 0 0;overflow:hidden}
+.tab{flex:1;padding:13px 8px;font-size:14px;cursor:pointer;border:none;background:transparent;
+     color:#666;border-bottom:2px solid transparent;transition:all .15s;font-weight:400}
+.tab:hover{background:#fafafa;color:#111}
+.tab.active{color:#111;border-bottom:2px solid #111;font-weight:500;background:#fff}
+
+.panel{display:none}.panel.active{display:block}
+
+.card{background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+.card-title{font-weight:500;font-size:15px;margin-bottom:12px}
+
+label{font-size:13px;color:#666;display:block;margin-bottom:5px;margin-top:10px}
+label:first-child{margin-top:0}
+input[type=text]{width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;
+                 font-size:14px;outline:none;transition:border-color .15s}
+input[type=text]:focus{border-color:#888}
+input[type=file]{width:100%;padding:8px 0;font-size:14px;color:#555}
+
+.btn{display:inline-block;padding:10px 22px;border-radius:8px;font-size:14px;
+     cursor:pointer;border:1px solid #ddd;background:#fff;color:#111;transition:all .15s}
+.btn:hover{background:#f5f5f5;border-color:#bbb}
+.btn.primary{background:#111;color:#fff;border-color:#111}
+.btn.primary:hover{background:#333}
+.btn.primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-row{display:flex;gap:10px;align-items:center;margin-top:14px}
+
+/* Result box */
+.result{border-radius:10px;padding:1rem 1.1rem;margin-top:1rem;font-size:14px;
+        line-height:1.8;border-left:4px solid #1D9E75;background:#f0faf6}
+.result.error{border-left-color:#E24B4A;background:#fef2f2}
+.result.warn{border-left-color:#E8A020;background:#fefaf0}
+.result strong.acc{font-size:22px;font-weight:600}
+
+/* Accuracy bar */
+.bar-track{height:6px;background:#e8e8e8;border-radius:3px;margin-top:10px;overflow:hidden}
+.bar-fill{height:6px;background:#1D9E75;border-radius:3px;transition:width .4s ease}
+
+/* Download grid */
+.dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dl-card{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;
+         border:1px solid #e8e8e8;border-radius:10px;background:#fff;
+         text-decoration:none;color:#111;transition:border-color .15s}
+.dl-card:hover{border-color:#999;background:#fafafa}
+.dl-card .ic{font-size:22px;margin-top:1px}
+.dl-card .dl-title{font-weight:500;font-size:14px}
+.dl-card .dl-desc{font-size:12px;color:#888;margin-top:2px}
+
+/* Format example */
+pre.fmt{background:#f5f5f3;padding:12px 14px;border-radius:8px;font-size:13px;
+        font-family:monospace;line-height:1.8;overflow-x:auto}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;
+     background:#f0f0ee;color:#555}
+
+/* Leaderboard */
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem}
+.metric{background:#fff;border:1px solid #e8e8e8;border-radius:10px;
+        padding:.9rem 1rem;text-align:center}
+.metric .mv{font-size:22px;font-weight:600;margin-top:4px}
+.metric .ml{font-size:12px;color:#888}
+
+.board{border-radius:12px;overflow:hidden;border:1px solid #e8e8e8;background:#fff}
+.board-head{display:grid;grid-template-columns:44px 1fr 90px 80px;gap:8px;
+            padding:10px 14px;font-size:12px;color:#888;font-weight:500;
+            background:#fafafa;border-bottom:1px solid #e8e8e8}
+.board-row{display:grid;grid-template-columns:44px 1fr 90px 80px;gap:8px;
+           padding:12px 14px;font-size:14px;align-items:center;
+           border-top:1px solid #f0f0f0;transition:background .1s}
+.board-row:hover{background:#fafafa}
+.board-row:first-child{border-top:none}
+.board-row.r1{background:#fffbf0}
+.board-row.r2{background:#fafafa}
+.board-row.r3{background:#f5f8ff}
+.rank-num{text-align:center;font-size:18px}
+.sname{font-weight:500;font-size:14px}
+.sid{font-size:11px;color:#999}
+.acc-val{font-weight:600}
+.sub-count{color:#888;font-size:13px}
+.empty-board{padding:2.5rem;text-align:center;color:#aaa;font-size:14px}
+
+/* Instructions list */
+.instr{font-size:14px;line-height:2.2;color:#444;padding-left:1.2rem}
+.instr li{padding-left:4px}
+
+/* Classes pill list */
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pill{font-size:12px;padding:3px 10px;border-radius:20px;
+      background:#f0f0ee;color:#444;border:1px solid #e0e0e0}
+
+/* spinner */
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #ccc;
+      border-top-color:#555;border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* badge */
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;display:inline-block;margin-left:6px}
+.badge.pb{background:#e6f9f2;color:#0F6E56}
+.badge.new{background:#e8f0fe;color:#1a56db}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <h1>Food Classification Assignment</h1>
+    <span>Kafrelsheikh University — Intelligent Systems Program</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('data')">Data &amp; instructions</button>
+    <button class="tab" onclick="switchTab('submit')">Submit predictions</button>
+    <button class="tab" onclick="switchTab('board')">Leaderboard</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       TAB 1 — DATA & INSTRUCTIONS
+  ══════════════════════════════════════════════ -->
+  <div class="panel active" id="panel-data">
+
+    <div class="card">
+      <div class="card-title">Downloads</div>
+      <div class="dl-grid">
+        <a class="dl-card" href="https://drive.google.com/drive/folders/1DwQWL-EdMa8NPJ8NMydzokvlm-53eZSQ?usp=sharing"
+           target="_blank">
+          <span class="ic">🗂</span>
+          <div>
+            <div class="dl-title">Training set</div>
+            <div class="dl-desc">Images + labels, 15 classes</div>
+          </div>
+        </a>
+        <a class="dl-card" href="https://drive.google.com/drive/folders/1_owuznspvw17tyIaj5spir7s8cpJA5UV?usp=sharing"
+           target="_blank">
+          <span class="ic">🧪</span>
+          <div>
+            <div class="dl-title">Test set</div>
+            <div class="dl-desc">Images only — no labels provided</div>
+          </div>
+        </a>
+        <a class="dl-card" href="https://drive.google.com/file/d/1WPW4NiHrFilm9Ck3G-KFiGZHLq1dXYLw/view?usp=sharing"
+           target="_blank">
+          <span class="ic">📄</span>
+          <div>
+            <div class="dl-title">classes.txt</div>
+            <div class="dl-desc">15 class names in order</div>
+          </div>
+        </a>
+        <a class="dl-card" href="#panel-data" onclick="scrollTo(0,400)">
+          <span class="ic">📋</span>
+          <div>
+            <div class="dl-title">Submission format</div>
+            <div class="dl-desc">See instructions below</div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Classes (15 total)</div>
+      <div class="pills">
+        <span class="pill">pizza</span><span class="pill">sushi</span>
+        <span class="pill">burger</span><span class="pill">salad</span>
+        <span class="pill">steak</span><span class="pill">ice_cream</span>
+        <span class="pill">pancakes</span><span class="pill">ramen</span>
+        <span class="pill">fries</span><span class="pill">sandwich</span>
+        <span class="pill">chicken_wings</span><span class="pill">donuts</span>
+        <span class="pill">omelette</span><span class="pill">waffles</span>
+        <span class="pill">hot_dog</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Instructions</div>
+      <ol class="instr">
+        <li>Download the training set and train any classifier you like</li>
+        <li>Generate predictions for every image in the <strong>test set</strong></li>
+        <li>Predictions must be in the <strong>same order</strong> as the test images (sorted by filename)</li>
+        <li>Save predictions as a plain <code>.txt</code> file — one class name per line</li>
+        <li>Upload your file in the <em>Submit predictions</em> tab</li>
+        <li>You may submit as many times as you like — only your best score appears on the leaderboard</li>
+        <li>All submissions are timestamped and visible to the instructor</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Prediction file format</div>
+      <p style="font-size:13px;color:#666;margin-bottom:10px">
+        One predicted class label per line, lowercase, in the same order as test images sorted alphabetically by filename.
+      </p>
+      <pre class="fmt">pizza
+sushi
+burger
+pizza
+steak
+ramen
+...</pre>
+      <p style="font-size:12px;color:#999;margin-top:10px">
+        Use the exact class names shown above. Case is ignored. Do not include image filenames or indices.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       TAB 2 — SUBMIT
+  ══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-submit">
+
+    <div class="card">
+      <div class="card-title">Your details</div>
+      <label>Student ID</label>
+      <input type="text" id="sid" placeholder="e.g. 202112345" />
+      <label>Full name</label>
+      <input type="text" id="sname" placeholder="Your full name as registered" />
+      <label>Method used <span class="tag">optional</span></label>
+      <input type="text" id="method" placeholder="e.g. KNN k=5, L2 distance, grayscale features" />
+    </div>
+
+    <div class="card">
+      <div class="card-title">Predictions file</div>
+      <p style="font-size:13px;color:#666;margin-bottom:10px">
+        Upload a plain <code>.txt</code> file with one class label per line.
+        Must contain exactly <strong id="n-labels">—</strong> predictions.
+      </p>
+      <input type="file" id="pfile" accept=".txt,.csv" />
+      <div class="btn-row">
+        <button class="btn primary" id="submit-btn" onclick="doSubmit()">
+          Score my submission
+        </button>
+        <span id="submit-spinner" style="display:none"><span class="spin"></span> Scoring…</span>
+      </div>
+    </div>
+
+    <div id="result-area"></div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       TAB 3 — LEADERBOARD
+  ══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-board">
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="ml">Total submissions</div>
+        <div class="mv" id="m-total">—</div>
+      </div>
+      <div class="metric">
+        <div class="ml">Students</div>
+        <div class="mv" id="m-students">—</div>
+      </div>
+      <div class="metric">
+        <div class="ml">Best accuracy</div>
+        <div class="mv" id="m-best">—</div>
+      </div>
+    </div>
+
+    <div class="board">
+      <div class="board-head">
+        <span>#</span>
+        <span>Student</span>
+        <span>Best accuracy</span>
+        <span>Submissions</span>
+      </div>
+      <div id="board-body">
+        <div class="empty-board">Loading leaderboard…</div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;display:flex;justify-content:flex-end">
+      <button class="btn" onclick="loadBoard()">Refresh</button>
+    </div>
+
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIGURATION — replace both values after deployment
+// ─────────────────────────────────────────────────────────────────────────────
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3sctxXh5OmajG8Av6soDc0L8Hgq6Gulr6XVRHbtLEFMqlWH6-nB-dbEoa0CHwaP8b0Q/exec";
+const LABELS_FILE_ID  = "1oICrrIHbwN7USpWUOiuusm7FKv0xO1iL";
+
+const VALID_CLASSES = [
+  "pizza","sushi","burger","salad","steak","ice_cream",
+  "pancakes","ramen","fries","sandwich","chicken_wings",
+  "donuts","omelette","waffles","hot_dog"
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tab switching
+// ─────────────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  const names = ["data","submit","board"];
+  document.querySelectorAll(".tab").forEach((t,i) =>
+    t.classList.toggle("active", names[i] === name));
+  document.querySelectorAll(".panel").forEach(p =>
+    p.classList.remove("active"));
+  document.getElementById("panel-"+name).classList.add("active");
+  if (name === "board") loadBoard();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fetch test label count for display (does NOT expose labels to browser)
+// We fetch just enough to show the expected count in the UI
+// ─────────────────────────────────────────────────────────────────────────────
+async function fetchLabelCount() {
+  try {
+    const url = `https://drive.google.com/uc?export=download&id=${LABELS_FILE_ID}`;
+    const r   = await fetch(url);
+    const txt = await r.text();
+    const n   = txt.trim().split(/\r?\n/).filter(l => l.trim()).length;
+    document.getElementById("n-labels").textContent = n;
+  } catch(e) {
+    document.getElementById("n-labels").textContent = "check instructions";
+  }
+}
+fetchLabelCount();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Submit
+// ─────────────────────────────────────────────────────────────────────────────
+async function doSubmit() {
+  const sid    = document.getElementById("sid").value.trim();
+  const sname  = document.getElementById("sname").value.trim();
+  const method = document.getElementById("method").value.trim();
+  const file   = document.getElementById("pfile").files[0];
+  const ra     = document.getElementById("result-area");
+  const btn    = document.getElementById("submit-btn");
+  const spinner= document.getElementById("submit-spinner");
+
+  // Basic validation
+  if (!sid || !sname) {
+    ra.innerHTML = err("Please enter your student ID and full name.");
+    return;
+  }
+  if (!file) {
+    ra.innerHTML = err("Please select your predictions file.");
+    return;
+  }
+
+  // Read file
+  let text;
+  try {
+    text = await file.text();
+  } catch(e) {
+    ra.innerHTML = err("Could not read the file. Make sure it is a plain .txt file.");
+    return;
+  }
+
+  // Parse predictions
+  const preds = text.trim().split(/\r?\n/)
+    .map(l => l.trim().toLowerCase())
+    .filter(l => l !== "");
+
+  if (preds.length === 0) {
+    ra.innerHTML = err("The file appears to be empty.");
+    return;
+  }
+
+  // Validate class names
+  const invalid = preds.filter(p => !VALID_CLASSES.includes(p));
+  if (invalid.length > 0) {
+    const sample = [...new Set(invalid)].slice(0,5).join(", ");
+    ra.innerHTML = err(`Unknown class name(s) found: <strong>${sample}</strong><br>
+      Use only the 15 valid class names listed in the instructions.`);
+    return;
+  }
+
+  // Send to Apps Script
+  btn.disabled = true;
+  spinner.style.display = "inline";
+  ra.innerHTML = "";
+
+  try {
+    const body = JSON.stringify({
+      student_id:  sid,
+      name:        sname,
+      method:      method || "—",
+      predictions: preds.join("\n"),
+    });
+
+    const r = await fetch(APPS_SCRIPT_URL, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+    const d = await r.json();
+
+    if (d.error) {
+      ra.innerHTML = err(d.error);
+    } else {
+      ra.innerHTML = buildResult(d);
+    }
+  } catch(e) {
+    ra.innerHTML = err("Could not reach the server. Please try again in a moment.");
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = "none";
+  }
+}
+
+function buildResult(d) {
+  const pct     = d.accuracy.toFixed(1);
+  const barW    = Math.min(d.accuracy, 100).toFixed(0);
+  const pbBadge = d.personal_best && d.prev_best !== null
+    ? `<span class="badge pb">Personal best</span>` : "";
+  const newBadge = d.prev_best === null
+    ? `<span class="badge new">First submission</span>` : "";
+  const delta = d.prev_best !== null
+    ? ` &nbsp;|&nbsp; Previous best: ${d.prev_best.toFixed(1)}%
+        &nbsp;|&nbsp; Change: ${d.accuracy >= d.prev_best ? "+" : ""}
+        ${(d.accuracy - d.prev_best).toFixed(1)}%`
+    : "";
+  return `
+    <div class="result">
+      <strong class="acc">${pct}%</strong> accuracy
+      ${pbBadge}${newBadge}<br>
+      <span style="font-size:13px;color:#555">
+        ${d.correct} / ${d.total} correct &nbsp;|&nbsp; Submission #${d.submission_n}${delta}
+      </span>
+      <div class="bar-track"><div class="bar-fill" style="width:${barW}%"></div></div>
+    </div>`;
+}
+
+function err(msg) {
+  return `<div class="result error">${msg}</div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Leaderboard
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadBoard() {
+  const body = document.getElementById("board-body");
+  body.innerHTML = `<div class="empty-board"><span class="spin"></span> Loading…</div>`;
+
+  try {
+    const r    = await fetch(`${APPS_SCRIPT_URL}?action=leaderboard`);
+    const rows = await r.json();
+
+    if (!rows.length) {
+      body.innerHTML = `<div class="empty-board">No submissions yet — be the first!</div>`;
+      updateMetrics(rows);
+      return;
+    }
+
+    const medals  = ["🥇","🥈","🥉","4","5"];
+    const classes = ["r1","r2","r3","",""];
+
+    body.innerHTML = rows.map((s, i) => `
+      <div class="board-row ${classes[i]}">
+        <span class="rank-num">${medals[i]}</span>
+        <span>
+          <div class="sname">${esc(s.name)}</div>
+          <div class="sid">${esc(s.student_id)}</div>
+        </span>
+        <span>
+          <div class="acc-val">${parseFloat(s.accuracy).toFixed(1)}%</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${Math.min(s.accuracy,100).toFixed(0)}%"></div>
+          </div>
+        </span>
+        <span class="sub-count">${s.submissions}</span>
+      </div>`).join("");
+
+    updateMetrics(rows);
+
+  } catch(e) {
+    body.innerHTML = `<div class="empty-board">Could not load leaderboard.</div>`;
+  }
+}
+
+function updateMetrics(rows) {
+  // These totals come from the leaderboard endpoint (top 5 only for students)
+  // Full counts are visible to instructor in the Sheet
+  document.getElementById("m-total").textContent =
+    rows.reduce((s,r) => s + (r.submissions||0), 0) || "—";
+  document.getElementById("m-students").textContent = rows.length || "—";
+  document.getElementById("m-best").textContent =
+    rows.length ? parseFloat(rows[0].accuracy).toFixed(1)+"%" : "—";
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+</script>
+
+</body>
+</html>
